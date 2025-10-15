@@ -1,0 +1,71 @@
+name: muelu_tutorial
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+
+env:
+  # Where we are getting the Trilinos source code from
+  TRILINOS_REPO: trilinos/Trilinos
+  TRILINOS_REF: develop
+
+  # directories relative to $GITHUB_WORKSPACE
+  WEBPAGES_DIR: trilinos.github.io  
+  TRILINOS_SOURCE: Trilinos
+  TRILINOS_BUILD: Trilinos-build
+
+permissions:
+  contents: write
+  pull-requests: write
+  pages: write
+  id-token: write
+  actions: write
+
+
+jobs:
+
+  docs:
+  
+    name: MueLu tutorial
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - name: Install Ubuntu packages
+      if: always()
+      run: |
+        sudo apt-get update
+        sudo apt-get install -yq python3 make python3-sphinx python3-sphinx-rtd-theme
+    
+    - name: Check out webpage repo
+      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      with:
+        path: ${{ env.WEBPAGES_DIR }}
+
+    - name: Check out Trilinos repo 
+      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      with:
+        repository: ${{ env.TRILINOS_REPO }}
+        ref: ${{ env.TRILINOS_REF }}
+        path: ${{ env.TRILINOS_SOURCE }}
+
+    - name: Run sphinx
+      run: |
+        pushd ${{ env.TRILINOS_SOURCE }}/packages/muelu/doc/Tutorial
+        SPHINXBUILD=sphinx-build make html
+        popd
+
+    - name: Setup Pages
+      uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+      with:
+        path: ${{ env.TRILINOS_SOURCE }}/packages/muelu/doc/Tutorial/_build/html
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5  
